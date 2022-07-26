@@ -73,3 +73,61 @@ export const deleteUser = async (req, res) => {
       .json("Access Denied! You can only delete your own profile.");
   }
 };
+
+// follow another user
+export const followUser = async (req, res) => {
+  const { id } = req.params; // pass and take id of user you want to follow from params
+  const { currentUserId } = req.body; // you id will be entered
+
+  if (id === currentUserId) {
+    // you cant follow your own profile ie if user to follow and user who is following is same the dont allow to follow, else allow to follow
+    res.status(403).json("Action Forbidden! You cant follow your own profile.");
+  } else {
+    try {
+      const followUser = await UserModel.findById(id); // user to follow
+      const followingUser = await UserModel.findById(currentUserId); // user who is following the followUser
+
+      //if Bibash want to follow Ram, then Ram followers array should not already contain Bibash'id,if it doesnot contain then let Bibash allow to follow Ram , otherwise dont allow him as he has alreday  followed Ram
+      if (!followUser.followers.includes(currentUserId)) {
+        // when bibash follow ram, rams followers list(array) should contain bibash, and bibash's following list(array) should contain ram's id,so push them accordingly.
+        await followUser.updateOne({ $push: { followers: currentUserId } });
+        await followingUser.updateOne({ $push: { following: id } });
+        res.status(200).json("User followed.");
+      } else {
+        res.status(403).json("Access Denied! You already followed this user.");
+      }
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+};
+
+// unfollow another user
+export const unfollowUser = async (req, res) => {
+  const { id } = req.params; // pass and take id of user you want to follow from params
+  const { currentUserId } = req.body; // you id will be entered
+
+  if (id === currentUserId) {
+    // you cant follow your own profile ie if user to follow and user who is following is same the dont allow to follow, else allow to follow
+    res
+      .status(403)
+      .json("Action Forbidden! You cant unfollow your own profile.");
+  } else {
+    try {
+      const followUser = await UserModel.findById(id); // user to follow
+      const followingUser = await UserModel.findById(currentUserId); // user who is following the followUser
+
+      //if Bibash want to unfollow Ram, then Ram followers array should already contain Bibash'id,if it contain then let Bibash allow to unfollow Ram , otherwise dont allow him as he has to first follow Ram in order to unfollow Ram
+      if (followUser.followers.includes(currentUserId)) {
+        // when bibash unfollow ram, rams followers list(array) should remove bibash's id, and bibash's following list(array) should remove ram's id,so pull them out of array accordingly.
+        await followUser.updateOne({ $pull: { followers: currentUserId } });
+        await followingUser.updateOne({ $pull: { following: id } });
+        res.status(200).json("User Unfollowed.");
+      } else {
+        res.status(403).json("Access Denied! User is not followed by you.");
+      }
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+};
