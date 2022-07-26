@@ -40,7 +40,7 @@ export const loginUser = async (req, res) => {
         : res.status(400).json("Wrong Password!");
     } else {
       //if user is not found, ie username entered by user is not in our database
-      res.status(404).json("User doesnot exist!");
+      res.status(404).json("User doesnot exist.");
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

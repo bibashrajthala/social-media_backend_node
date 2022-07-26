@@ -4,7 +4,7 @@ import { registerUser, loginUser } from "../Controllers/AuthController.js";
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
+router.get("/", (_, res) => {
   res.send("authroute is working");
 });
 
