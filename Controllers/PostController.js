@@ -71,3 +71,25 @@ export const deletePost = async (req, res) => {
     res.status(500).json(error);
   }
 };
+
+// like and unlike a post
+export const likeAndUnlikePost = async (req, res) => {
+  const { id } = req.params; // postId you want to like or unlike
+  const { userId } = req.body;
+
+  try {
+    // find the post you want to like or unlike
+    const post = await PostModel.findById(id);
+
+    // if that post object's likes[] array doesnot have your userId then it means you havenot liked the post and now you can like the post, otherwise it means that you have already like the post and now you can only unlike the post
+    if (!post.likes.includes(userId)) {
+      await post.updateOne({ $push: { likes: userId } });
+      res.status(200).json("Post liked");
+    } else {
+      await post.updateOne({ $pull: { likes: userId } });
+      res.status(200).json("Post unliked");
+    }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
