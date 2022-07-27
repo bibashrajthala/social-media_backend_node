@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import PostModel from "../Models/postModel.js";
+import UserModel from "../Models/userModel.js";
 
 // create a new post
 export const createPost = async (req, res) => {
@@ -89,6 +91,57 @@ export const likeAndUnlikePost = async (req, res) => {
       await post.updateOne({ $pull: { likes: userId } });
       res.status(200).json("Post unliked");
     }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
+// get timeline posts (to display those posts in your social media timeline/feeds)
+// timeline should display the posts you posted yourself and the posts posted by users in your following array/list ie the posts of users you have followed
+// bibash follows ram and abhishek. his timeline will have his posts along with ram and abhishek's post
+export const getTimelinePosts = async (req, res) => {
+  const { userId } = req.params; // your userId(ie, userId of user logged in)
+  //or
+  //   const userId = req.params.userId;
+  try {
+    // all your posts, ie, posts with your userId in it
+    const currentUserPosts = await PostModel.find({ userId: userId }); // all posts of bibash himself
+
+    // we want to perform query on UserModel but want result(ie post objects) of PostModel, so we make a aggregate() pipeline for that
+    // all posts of ram and abhishek
+    const followingPosts = await UserModel.aggregate([
+      {
+        // match the  user _id of users database with the current userId
+        $match: {
+          _id: new mongoose.Types.ObjectId(userId),
+        },
+      },
+      {
+        // in that matched user (ie,bibash myself) ,i want to lookup in the following array[] of users database to check and get the each post of posts database of matched userId key of post
+        // ie if  userId of any post matches any of user's id of following[] list of currentUser,Then put that post object in followingPosts[]
+        $lookup: {
+          from: "posts", // the db doc we want to look up
+          localField: "following", // the field in our db we are operating currently , here users ie UserModel
+          foreignField: "userId", // the field in our db that we want to integrate(posts) with current db(users) that we want to lookup in localfield (following[] of users)
+          as: "followingPosts", // the result array after lookup,  array of all posts whose userId is present inside followings[] of currentUser
+        },
+      },
+      {
+        // return/result of aggregation ie the fields we want to return
+        $project: {
+          followingPosts: 1, // we want the followingPosts field which has an object followingPosts result array with post objects
+          _id: 0, // we dont want the id field given defaultly so neglect it
+        },
+      },
+    ]);
+
+    // console.log(followingPosts);
+    // res.status(200).json(currentUserPosts.concat(followingPosts));
+    res.status(200).json(
+      currentUserPosts
+        .concat(followingPosts[0].followingPosts) // concat the currentUserPosts array and folllowingPosts array to make a response array of all posts of both the arrays in it in same level.
+        .sort((a, b) => b.createdAt - a.createdAt) // sort the post objects in order of their created time/date(latest to old) instead of the order(your posts first then the posts of users you followed),then send that sorted array as response
+    );
   } catch (error) {
     res.status(500).json(error);
   }
