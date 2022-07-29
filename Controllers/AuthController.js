@@ -4,20 +4,24 @@ import UserModel from "../Models/userModel.js";
 
 // Registering a new user
 export const registerUser = async (req, res) => {
-  const { username, password, firstName, lastName } = req.body;
+  const { username, password } = req.body;
 
   const saltRound = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, saltRound);
   //hash(encrypt) the password and use this hashed password as the value of password
 
+  // in new user is object of everthing entered by user(ie. req.body) but update the password entered with the converted hased password
   const newUser = new UserModel({
-    username,
+    ...req.body,
     password: hashedPassword,
-    firstName,
-    lastName,
   });
 
   try {
+    const oldUser = await UserModel.findOne({ username: username });
+    if (oldUser) {
+      res.status(400).json({ message: "this username is already registered!" });
+    }
+
     await newUser.save();
     res.status(200).json(newUser);
   } catch (error) {
