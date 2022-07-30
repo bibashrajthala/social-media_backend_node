@@ -18,8 +18,11 @@ app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 
 // to allow cross origin resources to interact,(to allow frontend url to interact with backend url)
 app.use(express.json());
-// express.json();
 app.use(cors());
+
+// to serve images inside public/images folder to frontend in /images path
+app.use(express.static("public"));
+app.use("/images", express.static("images"));
 
 dotenv.config();
 
