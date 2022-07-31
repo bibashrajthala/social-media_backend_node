@@ -1,4 +1,5 @@
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 import UserModel from "../Models/userModel.js";
 
@@ -28,10 +29,10 @@ export const getUser = async (req, res) => {
 // edit / update a user
 export const updateUser = async (req, res) => {
   const { id } = req.params;
-  const { currentUserId, currentUserIsAdminStatus, password } = req.body;
+  const { _id, currentUserIsAdminStatus, password } = req.body;
 
   // if the user is admin or if he is id entered matches to the user's id in database then only he can update the user
-  if (currentUserIsAdminStatus || id === currentUserId) {
+  if (currentUserIsAdminStatus || id === _id) {
     try {
       // user also wants to update password we need to hash that password before updating, so before updating our databse we hashed it and assigned it to req.body.password because we are updating to the req.body object(ie to what user entered)
       if (password) {
@@ -45,7 +46,13 @@ export const updateUser = async (req, res) => {
         new: true,
       });
 
-      res.status(200).json(user);
+      const token = jwt.sign(
+        { username: user.username, id: user._id },
+        process.env.JWT_KEY,
+        { expiresIn: "1h" }
+      );
+
+      res.status(200).json({ user, token });
       // console.log("user is updated");
     } catch (error) {
       res.status(500).json({ message: error.message });
