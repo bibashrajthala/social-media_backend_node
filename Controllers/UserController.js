@@ -3,6 +3,22 @@ import jwt from "jsonwebtoken";
 
 import UserModel from "../Models/userModel.js";
 
+// get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    let users = await UserModel.find(); // find() gives upto 20 latest users
+
+    users = users.filter((user) => {
+      // extract password sent as response
+      const { password, ...otherDetails } = user;
+      return otherDetails;
+    });
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
 // get a user
 export const getUser = async (req, res) => {
   const { id } = req.params;
@@ -84,20 +100,20 @@ export const deleteUser = async (req, res) => {
 // follow another user
 export const followUser = async (req, res) => {
   const { id } = req.params; // pass and take id of user you want to follow from params
-  const { currentUserId } = req.body; // you id will be entered
+  const { _id } = req.body; // you id will be entered
 
-  if (id === currentUserId) {
+  if (id === _id) {
     // you cant follow your own profile ie if user to follow and user who is following is same the dont allow to follow, else allow to follow
     res.status(403).json("Action Forbidden! You cant follow your own profile.");
   } else {
     try {
       const followUser = await UserModel.findById(id); // user to follow
-      const followingUser = await UserModel.findById(currentUserId); // user who is following the followUser
+      const followingUser = await UserModel.findById(_id); // user who is following the followUser
 
       //if Bibash want to follow Ram, then Ram followers array should not already contain Bibash'id,if it doesnot contain then let Bibash allow to follow Ram , otherwise dont allow him as he has alreday  followed Ram
-      if (!followUser.followers.includes(currentUserId)) {
+      if (!followUser.followers.includes(_id)) {
         // when bibash follow ram, rams followers list(array) should contain bibash, and bibash's following list(array) should contain ram's id,so push them accordingly.
-        await followUser.updateOne({ $push: { followers: currentUserId } });
+        await followUser.updateOne({ $push: { followers: _id } });
         await followingUser.updateOne({ $push: { following: id } });
         res.status(200).json("User followed.");
       } else {
@@ -112,9 +128,9 @@ export const followUser = async (req, res) => {
 // unfollow another user
 export const unfollowUser = async (req, res) => {
   const { id } = req.params; // pass and take id of user you want to follow from params
-  const { currentUserId } = req.body; // you id will be entered
+  const { _id } = req.body; // you id will be entered
 
-  if (id === currentUserId) {
+  if (id === _id) {
     // you cant follow your own profile ie if user to follow and user who is following is same the dont allow to follow, else allow to follow
     res
       .status(403)
@@ -122,12 +138,12 @@ export const unfollowUser = async (req, res) => {
   } else {
     try {
       const followUser = await UserModel.findById(id); // user to follow
-      const followingUser = await UserModel.findById(currentUserId); // user who is following the followUser
+      const followingUser = await UserModel.findById(_id); // user who is following the followUser
 
       //if Bibash want to unfollow Ram, then Ram followers array should already contain Bibash'id,if it contain then let Bibash allow to unfollow Ram , otherwise dont allow him as he has to first follow Ram in order to unfollow Ram
-      if (followUser.followers.includes(currentUserId)) {
+      if (followUser.followers.includes(_id)) {
         // when bibash unfollow ram, rams followers list(array) should remove bibash's id, and bibash's following list(array) should remove ram's id,so pull them out of array accordingly.
-        await followUser.updateOne({ $pull: { followers: currentUserId } });
+        await followUser.updateOne({ $pull: { followers: _id } });
         await followingUser.updateOne({ $pull: { following: id } });
         res.status(200).json("User Unfollowed.");
       } else {
